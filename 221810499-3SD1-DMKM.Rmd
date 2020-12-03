@@ -1,0 +1,183 @@
+---
+title: 'UTS-DMKM : Neural Network-Klasifikasi Benih'
+author: "Nensi Fitriani"
+date: "10/27/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+
+## Load Library
+Dua library yang dibutuhkan, yaitu **neuralnet dan caret**. Jika belum terinstall, silahkan install terlebih dahulu dengan perintah `install.packages("nama-package")`.
+
+Library **neuralnet** akan digunakan untuk membuat neural network. Library **caret** digunakan untuk membuat confusion matriks dan melihat akurasi model.
+
+NEURAL NETWORK
+
+```{r}
+library(neuralnet)
+
+library(caret)
+
+library(psych)
+```
+
+### Baca Data
+
+```{r}
+benih <- read.csv(file.choose(), header=FALSE, sep = "\t")
+head(benih)
+View(benih)
+```
+
+
+### Konversi Data
+Ubah tipe variabel menjadi tipe faktor jika bukan numeric
+```{r}
+benih[,8]= as.factor(benih[,8])
+str(benih)
+```
+
+### Split Data
+Memecah data menjadi data training (80% dari data awal) dan data test (20% dari data awal)
+```{r}
+set.seed(1234) #untuk menyamakan data yg didapat
+sampel <- sample(2,nrow(benih),replace = T, prob = c(0.8,0.2))
+trainingdat <- benih[sampel==1, ]
+testingdat <- benih[sampel==2, ]
+print(paste("Jumlah train data :", nrow(trainingdat)))
+print(paste("Jumlah test data :", nrow(testingdat)))
+```
+
+# mengambil nama variabel
+```{r}
+feats <- names(benih[,1:7])
+
+# Concatenate strings
+f <- paste(feats,collapse=' + ')
+f <- paste('V8 ~',f)
+# Convert to formula
+f <- as.formula(f);f
+```
+Kemudian pada syntax baris pertama merupakan perintah untuk mengambil nama kolom dari variabel data, kolom yang di ambil yaitu hanya pada kolom 1–7 karena kolom 8 merupakan varaibel dependen, sehingga tidak masuk.
+
+
+### Membuat Model
+Misal kita ingin menggunakan semua atributnya
+```{r}
+nn <- neuralnet(V8~., data=trainingdat)
+summary(nn)
+
+```
+```{r}
+## plot model
+plot(nn)
+
+```
+
+``` {r}
+nn2 <- neuralnet(V8~.,data=trainingdat,
+                    hidden=c(5,10,5),linear.output=TRUE)
+summary(nn2)
+
+```
+
+```{r}
+## plot model
+plot(nn2)
+
+```
+
+### Model Evaluation
+#### 
+```{r}
+library(caret)
+pred1 <- predict(nn, testingdat)
+
+confusionMatrix(as.factor(testingdat$V8))
+
+as.factor(pred1)
+
+pred1 <- compute(nn,testingdat)
+pred1
+pred1.r <- round(pred1$net.result)
+
+#prediksi model
+
+pred1 <- compute(nn, testingdat[1:7])
+result = data.frame((actual = testingdat$V8))
+prediction(pred1$net.result)
+result
+
+#confusion matrix
+
+str(benih)
+confusionMatrix(pred1, testingdat)
+```
+PERBANDINGAN DENGAN DECISION TREE
+
+### Load Library
+Tiga library yang dibutuhkan, yaitu **party, psych, dan caret**. Jika belum terinstall, silahkan install terlebih dahulu dengan perintah `install.packages("nama-package")`.
+
+Library **party** akan digunakan untuk membuat visualisasi dari decision tree. Library **psych** akan digunakan untuk melihat korelasi antar variabel. Library **caret** digunakan untuk membuat confusion matriks dan melihar akurasi model.
+
+```{r message=FALSE, warning=FALSE}
+library(party)
+library(psych)
+library(caret)
+library(corrplot)
+
+```
+
+### Baca Data
+#Data tersimpan di folder `dataset`
+```{r}
+benih2 <- read.csv(file.choose(), header=FALSE, sep = "\t")
+head(benih2)
+View(benih2)
+```
+
+
+### Konversi Data
+Ubah tipe variabel menjadi tipe faktor jika bukan numeric
+```{r}
+benih2[,8]= as.factor(benih2[,8])
+
+str(benih2)
+```
+
+### Split Data
+Memecah data menjadi data training (80% dari data awal) dan data test (20% dari data awal)
+```{r}
+set.seed(1234)
+sampel <- sample(2,nrow(benih2),replace = T, prob = c(0.8,0.2))
+trainingdat <- benih2[sampel==1, ]
+testingdat <- benih2[sampel==2, ]
+print(paste("Jumlah train data :", nrow(trainingdat)))
+print(paste("Jumlah test data :", nrow(testingdat)))
+```
+### Membuat Model
+Misal kita ingin menggunakan semua atributnya
+```{r}
+View(benih2)
+pohon <- ctree(V8~., data=trainingdat)
+plot(pohon)
+```
+
+
+
+
+### Model Evaluation
+#### 
+```{r}
+prediksi <- predict(pohon, testingdat)
+
+confusionMatrix(table(prediksi,testingdat$V8))
+```
